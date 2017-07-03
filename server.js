@@ -1,24 +1,15 @@
 let express = require('express');
+let hbs = require('express-hbs');
 let passport = require('passport');
+let session = require('express-session');
 let bodyParser = require('body-parser');
 let LocalStrategy = require('passport-local').Strategy;
-var session = require("express-session");
-
 
 let app = express();
 
+app.set('view engine', 'hbs');
 app.use(bodyParser.json());
-
-app.listen(3000, function () {
-    console.log('server running on 3000');
-});
-
-app.get('/', function (req, res) {
-    res.status(200);
-    res.send("Api is healthy");
-});
-
-/*passport stuff*/
+app.use(express.static('public'));
 
 app.use(session({
     secret: 'pwd',
@@ -29,61 +20,52 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
-
-passport.serializeUser(function (user, done) {
-    console.log('serizliaing', user);
-    done(null, user.id);
-});
-
-passport.deserializeUser(function (id, done) {
-    console.log('deserializing', id);
-    done(null, id);
-});
-
-
-app.get('/login', function (req, res) {
-    res.send("failed");
-});
-
-
-app.post('/login', passport.authenticate('local-signin', {
-    successRedirect: '/profile', // redirect to the secure profile section
-    failureRedirect: '/login', // redirect back to the signup page if there is an error
+app.engine('hbs', hbs.express4({
+    defaultLayout: __dirname + '/views/layout/main.hbs',
+    layoutDir: __dirname + '/views/layout'
 }));
 
-passport.use('local-signin', new LocalStrategy({
-    usernameField: 'email',
-    passwordField: 'password',
+
+app.get('/', function (req, res) {
+    res.render('pages/home');
+});
+
+app.get('/login', function (req, res) {
+    res.render('pages/login');
+});
+
+app.post('/login', function (req, res) {
+    passport.authenticate('local-login', function (err, user) {
+        if (err) res.status(500).render('pages/home');
+        else res.redirect('/tasks')
+    });
+});
+
+passport.serializeUser(function (user, done) {
+    done(null, user);
+});
+
+passport.deserializeUser(function (user, done) {
+    done(null, user);
+});
+
+passport.use('local-login', new LocalStrategy({
     passReqToCallback: true
-},
-    function (req, email, password, done) {
-        let user = {
-            id: 1,
-            email: 'mujib'
-        };
+}, function (req, username, password, done) {
+    if (req.username == "mujib" && req.password == "password") return done(null);
+    else return done("invalid password try again");
+}));
 
-        console.log('logging in');
-
-        if (email === "mujib" && password === "password") return done(null, {
-            id: 1,
-            email: 'mujib'
-        });
-        else return done("Failed");
-    }));
-
-
-
-function isLoggedIn(req, res, next) {
+app.use(function (req, res, next) {
     if (req.isAuthenticated()) next();
-    else res.status(401).send("Unauthorized");
-}
+    else res.redirect('/login');
+})
 
-app.use(isLoggedIn);
-
-
-app.get('/profile', function (req, res) {
-    console.log(req);
-    res.send("loggined");
+app.get('/tasks', function (req, res) {
+    res.render('tasks');
 });
 
 
+app.listen(3000, function () {
+    console.log('running on 3000');
+});
