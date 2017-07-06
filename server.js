@@ -3,14 +3,20 @@ let hbs = require('express-hbs');
 let passport = require('passport');
 let session = require('express-session');
 let bodyParser = require('body-parser');
-let LocalStrategy = require('passport-local').Strategy;
+let mongoose = require('mongoose');
 
 let authService = require('./passport');
 let middlewares = require('./middlewares');
 let loginRouter = require('./loginRouter');
-let taskRouter=require('./taskRouter');
+let taskRouter = require('./taskRouter');
+
+
+
+let googleAuthConfig = require('./google.js');
 
 let app = express();
+
+mongoose.connect('mongodb://localhost/authDb');
 
 app.set('view engine', 'hbs');
 app.use(bodyParser.json());
@@ -32,6 +38,15 @@ app.engine('hbs', hbs.express4({
     defaultLayout: __dirname + '/views/layout/main.hbs',
     layoutDir: __dirname + '/views/layout'
 }));
+
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get('/auth/google/callback',
+    passport.authenticate('google', {
+        successRedirect: '/tasks',
+        failureRedirect: '/'
+    }));
+
 
 app.use(loginRouter);
 

@@ -1,5 +1,6 @@
 let passport = require('passport');
 let LocalStrategy = require('passport-local').Strategy;
+let User = require('./models/user');
 
 function authService() {
 
@@ -13,9 +14,10 @@ function authService() {
 
     passport.use('login', new LocalStrategy(
         function (username, password, done) {
-            if (username === "mujib" && password === "password")
-                return done(null, { username: "mujib" });
-            return done("Failed");
+            User.findOne({ "username": username, 'password': password }, { 'username': 1, '_id': 1 }, function (err, user) {
+                if (err) done(err);
+                else done(null, user);
+            });
         }));
 
     return {
